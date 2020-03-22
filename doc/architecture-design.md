@@ -28,6 +28,7 @@
 - [**Upstream**](#upstream)
 - [**Router**](#router)
 - [**Consumer**](#consumer)
+- [**Global Rule**](#Global-Rule)
 - [**Debug mode**](#Debug-mode)
 
 ## APISIX
@@ -81,7 +82,7 @@ The shortcomings mentioned above are independently abstracted in APISIX by the t
 The route example created below is to proxy the request with uri `/index.html` to the Upstream service with the address `39.97.63.215:80`:
 
 ```shell
-$ curl http://127.0.0.1:9080/apisix/admin/routes/1 -X PUT -i -d '
+$ curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -i -d '
 {
     "uri": "/index.html",
     "upstream": {
@@ -120,7 +121,7 @@ The following example creates a Service that enables the current-limit plugin, a
 
 ```shell
 # create new Service
-$ curl http://127.0.0.1:9080/apisix/admin/services/200 -X PUT -d '
+$ curl http://127.0.0.1:9080/apisix/admin/services/200 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "plugins": {
         "limit-count": {
@@ -139,14 +140,14 @@ $ curl http://127.0.0.1:9080/apisix/admin/services/200 -X PUT -d '
 }'
 
 # create new Route and reference the service by id `200`
-curl http://127.0.0.1:9080/apisix/admin/routes/100 -X PUT -d '
+curl http://127.0.0.1:9080/apisix/admin/routes/100 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "methods": ["GET"],
     "uri": "/index.html",
     "service_id": "200"
 }'
 
-curl http://127.0.0.1:9080/apisix/admin/routes/101 -X PUT -d '
+curl http://127.0.0.1:9080/apisix/admin/routes/101 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "methods": ["GET"],
     "uri": "/foo/index.html",
@@ -157,7 +158,7 @@ curl http://127.0.0.1:9080/apisix/admin/routes/101 -X PUT -d '
 Of course, we can also specify different plugin parameters or upstream for Route. Some of the following Routes have different current-limit parameters. Other parts (such as upstream) continue to use the configuration parameters in Service.
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/102 -X PUT -d '
+curl http://127.0.0.1:9080/apisix/admin/routes/102 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/bar/index.html",
     "id": "102",
@@ -232,14 +233,18 @@ In addition to the basic complex equalization algorithm selection, APISIX's Upst
 |-------         |-----|------|
 |type            |required|`roundrobin` supports the weight of the load, `chash` consistency hash, pick one of them.|
 |nodes           |required|Hash table, the key of the internal element is the upstream machine address list, the format is `Address + Port`, where the address part can be IP or domain name, such as `192.168.1.100:80`, `foo.com:80`, etc. Value is the weight of the node. In particular, when the weight value is `0`, it has a special meaning, which usually means that the upstream node is invalid and never wants to be selected.|
-|key             |required|This option is only valid if the type is `chash`. Find the corresponding node `id` according to `key`, the same `key` in the same object, always return the same id. For now, it support nginx built-in variables like `uri, server_name, server_addr, request_uri, remote_port, remote_addr, query_string, host, hostname, arg_***`, `arg_***` is arguments in the request line, [Nginx variables list](http://nginx.org/en/docs/varindex.html)|
+|hash_on         |optional|This option is only valid if the `type` is `chash`. Supported types `vars`(Nginx variables), `header`(custom header), `cookie`, `consumer`, the default value is `vars`.|
+|key             |required|This option is only valid if the `type` is `chash`. Find the corresponding node `id` according to `hash_on` and `key`. When `hash_on` is set as `vars`, `key` is the required parameter, for now, it support nginx built-in variables like `uri, server_name, server_addr, request_uri, remote_port, remote_addr, query_string, host, hostname, arg_***`, `arg_***` is arguments in the request line, [Nginx variables list](http://nginx.org/en/docs/varindex.html). When `hash_on` is set as `header`, `key` is the required parameter, and `header name` is customized. When `hash_on` is set to `cookie`, `key` is the required parameter, and `cookie name` is customized. When `hash_on` is set to `consumer`, `key` does not need to be set. In this case, the `key` adopted by the hash algorithm is the `consumer_id` authenticated. If the specified `hash_on` and `key` can not fetch values, it will be fetch `remote_addr` by default.|
 |checks          |optional|Configure the parameters of the health check. For details, refer to [health-check](health-check.md).|
 |retries         |optional|Pass the request to the next upstream using the underlying Nginx retry mechanism, the retry mechanism is enabled by default and set the number of retries according to the number of backend nodes. If `retries` option is explicitly set, it will override the default value.|
+|enable_websocket|optional| enable `websocket`(boolean), default `false`.|
+|timeout|optional| Set the timeout for connection, sending and receiving messages. |
+|desc     |optional|Identifies route names, usage scenarios, and more.|
 
 Create an upstream object use case:
 
 ```json
-curl http://127.0.0.1:9080/apisix/admin/upstreams/1 -X PUT -d '
+curl http://127.0.0.1:9080/apisix/admin/upstreams/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "type": "roundrobin",
     "nodes": {
@@ -249,10 +254,11 @@ curl http://127.0.0.1:9080/apisix/admin/upstreams/1 -X PUT -d '
     }
 }'
 
-curl http://127.0.0.1:9080/apisix/admin/upstreams/2 -X PUT -d '
+curl http://127.0.0.1:9080/apisix/admin/upstreams/2 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "type": "chash",
     "key": "remote_addr",
+    "enable_websocket": true,
     "nodes": {
         "127.0.0.1:80": 1,
         "foo.com:80": 2
@@ -263,7 +269,7 @@ curl http://127.0.0.1:9080/apisix/admin/upstreams/2 -X PUT -d '
 After the upstream object is created, it can be referenced by specific `Route` or `Service`, for example:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -X PUT -d '
+curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/index.html",
     "upstream_id": 2
@@ -273,7 +279,7 @@ curl http://127.0.0.1:9080/apisix/admin/routes/1 -X PUT -d '
 For convenience, you can also directly bind the upstream address to a `Route` or `Service`, for example:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -X PUT -d '
+curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/index.html",
     "plugins": {
@@ -296,7 +302,7 @@ curl http://127.0.0.1:9080/apisix/admin/routes/1 -X PUT -d '
 Here's an example of configuring a health check:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -X PUT -d '
+curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/index.html",
     "plugins": {
@@ -332,6 +338,88 @@ curl http://127.0.0.1:9080/apisix/admin/routes/1 -X PUT -d '
 ```
 
 More details can be found in [Health Checking Documents](health-check.md).
+
+Here are some examples of configurations using different `hash_on` types:
+##### Consumer
+Create a consumer object:
+```shell
+curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d `
+{
+    "username": "jack",
+    "plugins": {
+       "key-auth": {
+            "key": "auth-jack"
+        }
+    }
+}`
+```
+Create route object and enable `key-auth` plugin authentication:
+```shell
+curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+{
+    "plugins": {
+        "key-auth": {}
+    },
+    "upstream": {
+        "nodes": {
+            "127.0.0.1:1980": 1,
+            "127.0.0.1:1981": 1
+        },
+        "type": "chash",
+        "hash_on": "consumer"
+    },
+    "uri": "/server_port"
+}'
+```
+Test request, the `consumer_id` after authentication is passed will be used as the hash value of the load balancing hash algorithm:
+```shell
+curl http://127.0.0.1:9080/server_port -H "apikey: auth-jack"
+```
+
+##### Cookie
+Create route and upstream object, `hash_on` is `cookie`:
+```shell
+curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+{
+    "uri": "/hash_on_cookie",
+    "upstream": {
+        "key": "sid",
+        "type ": "chash",
+        "hash_on ": "cookie",
+        "nodes ": {
+            "127.0.0.1:1980": 1,
+            "127.0.0.1:1981": 1
+        }
+    }
+}'
+```
+The client requests with `Cookie`:
+```shell
+ curl http://127.0.0.1:9080/hash_on_cookie -H "Cookie: sid=3c183a30cffcda1408daf1c61d47b274"
+```
+
+##### Header
+Create route and upstream object, `hash_on` is `header`, `key` is `Content-Type`:
+```shell
+curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+{
+    "uri": "/hash_on_header",
+    "upstream": {
+        "key": "content-type",
+        "type ": "chash",
+        "hash_on ": "header",
+        "nodes ": {
+            "127.0.0.1:1980": 1,
+            "127.0.0.1:1981": 1
+        }
+    }
+}'
+```
+
+The client requests with header `Content-Type`:
+```shell
+ curl http://127.0.0.1:9080/hash_on_header -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -H "Content-Type: application/json"
+```
 
 [Back to top](#Table-of-contents)
 
@@ -386,7 +474,7 @@ How to enable a specific plugin for a Consumer, you can see the following exampl
 
 ```shell
 # Create a Consumer , specify the authentication plugin key-auth, and enable the specific plugin limit-count
-$ curl http://127.0.0.1:9080/apisix/admin/consumers/1 -X PUT -d '
+$ curl http://127.0.0.1:9080/apisix/admin/consumers/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "username": "jack",
     "plugins": {
@@ -403,7 +491,7 @@ $ curl http://127.0.0.1:9080/apisix/admin/consumers/1 -X PUT -d '
 }'
 
 # Create a Router, set routing rules and enable plugin configuration
-$ curl http://127.0.0.1:9080/apisix/admin/routes/1 -X PUT -d '
+$ curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "plugins": {
         "key-auth": {}
@@ -429,6 +517,34 @@ $ curl http://127.0.0.1:9080/hello -H 'apikey: auth-one' -I
 HTTP/1.1 503 Service Temporarily Unavailable
 ...
 
+```
+
+[Back to top](#Table-of-contents)
+
+## Global Rule
+[Plugin](#Plugin) just can be binded to [Service](#Service) or [Route](#Route), if we want a [Plugin](#Plugin) work on all requests, how to do it?
+We can register a global [Plugin](#Plugin) with `GlobalRule`:
+```shell
+curl -X PUT \
+  https://{apisix_listen_address}/apisix/admin/global_rules/1 \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "plugins": {
+            "limit-count": {
+                "time_window": 60,
+                "policy": "local",
+                "count": 2,
+                "key": "remote_addr",
+                "rejected_code": 503
+            }
+        }
+    }'
+```
+Now, the `limit-count` plugin will work on all requets
+
+we can list all `GlobalRule` via admin api as below:
+```shell
+curl https://{apisix_listen_address}/apisix/admin/global_rules
 ```
 
 [Back to top](#Table-of-contents)

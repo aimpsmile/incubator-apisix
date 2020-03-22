@@ -1369,6 +1369,7 @@ passed
 location /t {
     content_by_lua_block {
         local t = require("lib.test_admin").test
+        local core = require("apisix.core")
         -- set
         local code, body, res = t('/apisix/admin/routes/1?ttl=1',
             ngx.HTTP_PUT,
@@ -1383,7 +1384,7 @@ location /t {
             }]]
             )
 
-        if code >= 300 then ngx.print("code: ", code, " ") end
+        ngx.say("code: ", code)
         ngx.say(body)
 
         -- get
@@ -1400,7 +1401,7 @@ location /t {
             }]]
         )
 
-        if code >= 300 then ngx.print("code: ", code, " ") end
+        ngx.say("code: ", code)
         ngx.say(body)
 
         ngx.sleep(2)
@@ -1408,16 +1409,19 @@ location /t {
         -- get again
         code, body, res = t('/apisix/admin/routes/1', ngx.HTTP_GET)
 
-        if code >= 300 then ngx.print("code: ", code, " ") end
-        ngx.print(body)
+        ngx.say("code: ", code)
+        ngx.say("message: ", core.json.decode(body).message)
     }
 }
 --- request
 GET /t
---- response_body_like eval
-qr$passed
+--- response_body
+code: 200
 passed
-code: 404 {"cause":"\\/apisix\\/routes\\/1","index":\d+,"errorCode":100,"message":"Key not found"}$
+code: 200
+passed
+code: 404
+message: Key not found
 --- no_error_log
 [error]
 --- timeout: 5
@@ -1429,6 +1433,8 @@ code: 404 {"cause":"\\/apisix\\/routes\\/1","index":\d+,"errorCode":100,"message
 location /t {
     content_by_lua_block {
         local t = require("lib.test_admin").test
+        local core = require("apisix.core")
+
         local code, body, res = t('/apisix/admin/routes?ttl=1',
             ngx.HTTP_POST,
             [[{
@@ -1456,15 +1462,16 @@ location /t {
         local id = string.sub(res.node.key, #"/apisix/routes/" + 1)
         code, body = t('/apisix/admin/routes/' .. id, ngx.HTTP_GET)
 
-        if code >= 300 then ngx.print("code: ", code, " ") end
-        ngx.print(body)
+        ngx.say("code: ", code)
+        ngx.say("message: ", core.json.decode(body).message)
     }
 }
 --- request
 GET /t
---- response_body_like eval
-qr$succ: passed
-code: 404 {"cause":"\\/apisix\\/routes\\/\d+","index":\d+,"errorCode":100,"message":"Key not found"}$
+--- response_body
+[push] succ: passed
+code: 404
+message: Key not found
 --- no_error_log
 [error]
 --- timeout: 5
@@ -1581,6 +1588,136 @@ passed
                 )
 
             ngx.status = code
+            ngx.say(body)
+        }
+    }
+--- request
+GET /t
+--- response_body
+passed
+--- no_error_log
+[error]
+
+
+
+=== TEST 43: set route(id: 1) and upstream(type:chash, default hash_on: vars, missing key)
+--- config
+    location /t {
+        content_by_lua_block {
+            local t = require("lib.test_admin").test
+            local code, body = t('/apisix/admin/routes/1',
+                ngx.HTTP_PUT,
+                [[{
+                    "methods": ["GET"],
+                    "upstream": {
+                        "nodes": {
+                            "127.0.0.1:8080": 1
+                        },
+                        "type": "chash"
+                    },
+                    "desc": "new route",
+                    "uri": "/index.html"
+                }]])
+            ngx.status = code
+            ngx.print(body)
+        }
+    }
+--- request
+GET /t
+--- error_code: 400
+--- response_body
+{"error_msg":"missing key"}
+--- no_error_log
+[error]
+
+
+
+=== TEST 44: set route(id: 1) and upstream(type:chash, hash_on: header, missing key)
+--- config
+    location /t {
+        content_by_lua_block {
+            local t = require("lib.test_admin").test
+            local code, body = t('/apisix/admin/routes/1',
+                ngx.HTTP_PUT,
+                [[{
+                    "methods": ["GET"],
+                    "upstream": {
+                        "nodes": {
+                            "127.0.0.1:8080": 1
+                        },
+                        "type": "chash",
+                        "hash_on":"header"
+                    },
+                    "desc": "new route",
+                    "uri": "/index.html"
+                }]])
+            ngx.status = code
+            ngx.print(body)
+        }
+    }
+--- request
+GET /t
+--- error_code: 400
+--- response_body
+{"error_msg":"missing key"}
+--- no_error_log
+[error]
+
+
+
+=== TEST 45: set route(id: 1) and upstream(type:chash, hash_on: cookie, missing key)
+--- config
+    location /t {
+        content_by_lua_block {
+            local t = require("lib.test_admin").test
+            local code, body = t('/apisix/admin/routes/1',
+                ngx.HTTP_PUT,
+                [[{
+                    "methods": ["GET"],
+                    "upstream": {
+                        "nodes": {
+                            "127.0.0.1:8080": 1
+                        },
+                        "type": "chash",
+                        "hash_on":"cookie"
+                    },
+                    "desc": "new route",
+                    "uri": "/index.html"
+                }]])
+            ngx.status = code
+            ngx.print(body)
+        }
+    }
+--- request
+GET /t
+--- error_code: 400
+--- response_body
+{"error_msg":"missing key"}
+--- no_error_log
+[error]
+
+
+
+=== TEST 46: set route(id: 1) and upstream(type:chash, hash_on: consumer, missing key is ok)
+--- config
+    location /t {
+        content_by_lua_block {
+            local t = require("lib.test_admin").test
+            local code, body = t('/apisix/admin/routes/1',
+                ngx.HTTP_PUT,
+                [[{
+                    "methods": ["GET"],
+                    "upstream": {
+                        "nodes": {
+                            "127.0.0.1:8080": 1
+                        },
+                        "type": "chash",
+                        "hash_on":"consumer"
+                    },
+                    "desc": "new route",
+                    "uri": "/index.html"
+                }]])
+
             ngx.say(body)
         }
     }

@@ -9,7 +9,7 @@ matrix:
   include:
     - os: linux
       services:
-        - redis-server
+        - docker
       env: OSNAME=linux_openresty
     - os: osx
       env: OSNAME=osx_openresty
@@ -20,8 +20,16 @@ matrix:
           - /usr/local/Homebrew
     - os: linux
       services:
-        - redis-server
+        - docker
       env: OSNAME=linux_tengine
+    - os: linux
+      services:
+        - docker
+      env: OSNAME=linux_apisix_master_luarocks
+    - os: linux
+      services:
+        - docker
+      env: OSNAME=linux_apisix_current_luarocks
 
 language: c
 
