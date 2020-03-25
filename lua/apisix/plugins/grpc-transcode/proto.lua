@@ -43,6 +43,7 @@ local function create_proto_obj(proto_id)
     end
 
     local _p  = protoc.new()
+    _p.paths = {"/storage/code/proto"}
     local res = _p:load(content)
 
     if not res or not _p.loaded then

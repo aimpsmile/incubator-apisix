@@ -27,7 +27,7 @@ local str_sub = string.sub
 local tonumber = tonumber
 local clear_tab = require("table.clear")
 local pairs = pairs
-
+local log = require("apisix.core.log")
 local _M = {version = 0.1}
 
 
@@ -68,7 +68,12 @@ function resp_exit(code, ...)
     end
 
     if idx > 0 then
-        ngx_print(concat_tab(t, "", 1, idx))
+        local msg = concat_tab(t, "", 1, idx)
+		if code < 400 then
+		    ngx_print(msg)
+		else 
+		    log.error(msg)
+		end
     end
 
     if code then
