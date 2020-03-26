@@ -43,11 +43,20 @@ local pb_option_def = {
         enum = {"enable_hooks", "disable_hooks" },
     },
 }
+local id_schema = {
+    anyOf = {
+        {
+            type = "string", minLength = 1, maxLength = 32,
+            pattern = [[^[0-9a-zA-Z]+$]]
+        },
+        {type = "integer", minimum = 1}
+    }
+}
 
 local schema = {
     type = "object",
     properties = {
-        proto_id  = schema_def.id_schema,
+        proto_id  = id_schema,
         service = {
             description = "the grpc service name",
             type        = "string"
