@@ -17,8 +17,8 @@
 #
 -->
 
+# Table of Contents
 
-Table of contents
 ===
 
 * [Route](#route)
@@ -60,7 +60,7 @@ Table of contents
 |remote_addr|False |Match Rules|The client requests an IP address: `192.168.1.101`, `192.168.1.102`, and CIDR format support `192.168.1.0/24`. In particular, APISIX also fully supports IPv6 address matching: `::1`, `fe80::1`, `fe80::1/64`, etc.|"192.168.1.0/24"|
 |remote_addrs|False |Match Rules|The `remote_addr` in the form of a list indicates that multiple different IP addresses are allowed, and match any one of them.|{"127.0.0.1", "192.0.0.0/8", "::1"}|
 |methods  |False |Match Rules|If empty or without this option, there are no `method` restrictions, and it can be a combination of one or more: `GET`,`POST`,`PUT`,`DELETE`,`PATCH`, `HEAD`,`OPTIONS`,`CONNECT`,`TRACE`.|{"GET", "POST"}|
-|priority  |False |Match Rules|If different routes contain the same `uri`, determine which route is matched first based on the attribute` priority`, the default value is 0.|priority = 10|
+|priority  |False |Match Rules|If different routes contain the same `uri`, determine which route is matched first based on the attribute` priority`. Larger value means higher priority. The default value is 0.|priority = 10|
 |vars       |False  |Match Rules |A list of one or more `{var, operator, val}` elements, like this: `{{var, operator, val}, {var, operator, val}, ...}`. For example: `{"arg_name", "==", "json"}` means that the current request parameter `name` is `json`. The `var` here is consistent with the internal variable name of Nginx, so you can also use `request_uri`, `host`, etc. For the operator part, the currently supported operators are `==`, `~=`,`>`, `<`, and `~~`. For the `>` and `<` operators, the result is first converted to `number` and then compared. See a list of [supported operators](#available-operators) |{{"arg_name", "==", "json"}, {"arg_age", ">", 18}}|
 |filter_func|False|Match Rules|User-defined filtering function. You can use it to achieve matching requirements for special scenarios. This function accepts an input parameter named `vars` by default, which you can use to get Nginx variables.|function(vars) return vars["arg_name"] == "json" end|
 |plugins  |False |Plugin|See [Plugin](architecture-design.md#plugin) for more ||
@@ -167,7 +167,7 @@ curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f13
 }'
 ```
 
-[Back to TOC](#table-of-contents)
+[Back to TOC](#Table-of-Contents)
 
 ## Service
 
@@ -245,7 +245,7 @@ Server: APISIX web server
 
 Return response from etcd currently.
 
-[Back to TOC](#table-of-contents)
+[Back to TOC](#Table-of-Contents)
 
 ## Consumer
 
@@ -312,7 +312,7 @@ Date: Thu, 26 Dec 2019 08:17:49 GMT
 
 Return response from etcd currently.
 
-[Back to TOC](#table-of-contents)
+[Back to TOC](#Table-of-Contents)
 
 ## Upstream
 
@@ -392,7 +392,7 @@ Content-Type: text/plain
 
 Return response from etcd currently.
 
-[Back to TOC](#table-of-contents)
+[Back to TOC](#Table-of-Contents)
 
 ## SSL
 
@@ -428,4 +428,4 @@ Config Example:
 }
 ```
 
-[Back to TOC](#table-of-contents)
+[Back to TOC](#Table-of-Contents)
